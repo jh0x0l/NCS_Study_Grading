@@ -13,14 +13,12 @@
   <!-- CSS 스타일시트 -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+  <!-- Firebase SDK 완전 제거됨! Socket.io 추가 -->
+  <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 <div class="wrap">
-
-  <!-- 헤더 영역 -->
+  <!-- (기존 HTML 본문 내용 그대로 유지) -->
   <div class="stamp-wrap">
     <div>
       <p class="eyebrow">NCS STUDY GRADING SHEET</p>
@@ -133,8 +131,7 @@
 <!-- 알림 토스트 -->
 <div class="toast" id="toast"></div>
 
-<!-- JavaScript 모듈 로드 -->
-<script src="api.js"></script>
+<!-- JavaScript 단일화 (api.js 삭제) -->
 <script src="app.js"></script>
 </body>
 </html>

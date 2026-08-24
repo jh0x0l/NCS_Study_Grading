@@ -1,0 +1,27 @@
+{
+  "name": "ncs_study_grading",
+  "version": "1.0.0",
+  "description": "NCS 스터디 채점 및 비교 서비스 개발",
+  "main": "api.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jh0x0l/NCS_Study_Grading.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jh0x0l/NCS_Study_Grading/issues"
+  },
+  "homepage": "https://github.com/jh0x0l/NCS_Study_Grading#readme",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
+}
