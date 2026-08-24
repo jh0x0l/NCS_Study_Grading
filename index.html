@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NCS 스터디 채점표</title>
+
+  <!-- Google Fonts & Pretendard -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Space+Grotesk:wght@500;700&display=swap">
+
+  <!-- CSS 스타일시트 -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 헤더 영역 -->
+  <div class="stamp-wrap">
+    <div>
+      <p class="eyebrow">NCS STUDY GRADING SHEET</p>
+      <h1>스터디 채점표</h1>
+      <p class="subtitle">다같이 O/X 체크하고 오답률 랭킹을 바로 확인하세요</p>
+      <p class="subtitle" id="whoAmI" style="display:none; margin-top:6px;"></p>
+    </div>
+    <div class="stamp">확인<br>완료</div>
+  </div>
+
+  <!-- 입장 모달/카드 -->
+  <div id="joinCard" class="card" style="display:none;">
+    <h2><span class="num">·</span> 이름을 입력하고 입장하세요</h2>
+    <div class="chip-list" id="joinQuickPicks" style="display:none; margin-bottom:10px;"></div>
+    <div class="add-row">
+      <input type="text" id="myNameInput" placeholder="처음이면 이름을 새로 입력하세요">
+      <button class="btn primary" id="joinBtn">입장</button>
+    </div>
+    <p class="hint">이미 등록된 이름이 있으면 위에서 눌러서 바로 들어갈 수 있어요.</p>
+  </div>
+
+  <!-- 회차 탭 & 진행률 -->
+  <div id="roundTabsCard" class="card" style="display:none;">
+    <div class="tabs" id="tabs"></div>
+    <div id="progressWrap">
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft);">
+        <span id="progressLabel"></span>
+        <span id="progressPct"></span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
+    </div>
+  </div>
+
+  <!-- 새 회차 설정 -->
+  <div id="setupCard" class="card" style="display:none;">
+    <h2><span class="num">01</span> 새 회차 설정</h2>
+    <div class="row">
+      <div>
+        <label for="roundTitle">회차 이름</label>
+        <input type="text" id="roundTitle" placeholder="예: 3주차 모의고사, 8/17 오답체크">
+      </div>
+      <div style="max-width:120px;">
+        <label for="qCount">문제 수</label>
+        <input type="number" id="qCount" value="30" min="1" max="200">
+      </div>
+    </div>
+    <p class="hint">스터디원은 각자 이 링크에 들어와서 자기 이름만 입력하면 자동으로 채점표에 추가돼요.</p>
+
+    <div style="margin-top:16px; display:flex; gap:8px;">
+      <button class="btn primary" id="startRoundBtn">회차 만들기</button>
+      <button class="btn ghost" id="cancelSetupBtn" style="display:none;">취소</button>
+    </div>
+  </div>
+
+  <!-- 메인 영역 -->
+  <div id="mainArea" style="display:none;">
+    <div class="grid2">
+      <!-- 02 채점 그리드 -->
+      <div class="card" style="padding:14px;">
+        <h2 style="padding:0 6px;"><span class="num">02</span> 채점 그리드 <span style="font-weight:400; color:var(--ink-faint); font-size:11px; margin-left:4px;">(칸을 눌러 O → X → 빈칸 순서로 표시)</span></h2>
+        <div class="sheet-scroll">
+          <table class="sheet" id="sheetTable"></table>
+        </div>
+        <div class="legend">
+          <span><span class="mark o" style="font-size:16px;">O</span> 정답</span>
+          <span><span class="mark x" style="font-size:16px;">X</span> 오답</span>
+          <span><span class="mark blank">·</span> 안 푼 문제</span>
+        </div>
+      </div>
+
+      <!-- 통계 및 관리 영역 -->
+      <div>
+        <div class="card">
+          <h2><span class="num">03</span> 오답률 랭킹</h2>
+          <div id="rankList"></div>
+        </div>
+
+        <div class="card">
+          <h2><span class="num">04</span> 스터디원별 정답률</h2>
+          <div id="memberStats"></div>
+        </div>
+
+        <div class="card" style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn" id="newRoundBtn">＋ 새 회차 시작</button>
+          <button class="btn ghost" id="editMembersBtn">스터디원 편집</button>
+          <button class="btn ghost" id="deleteRoundBtn" style="color:var(--red-deep); margin-left:auto;">이 회차 삭제</button>
+        </div>
+
+        <div class="card" id="membersEditCard" style="display:none;">
+          <h2 style="margin-bottom:8px;">스터디원 편집</h2>
+          <div class="add-row">
+            <input type="text" id="memberInput" placeholder="이름 입력 후 추가">
+            <button class="btn" id="addMemberBtn">추가</button>
+          </div>
+          <div class="chip-list" id="memberChips"></div>
+          <p class="hint" id="memberHint"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 빈 상태 표시 -->
+  <div id="emptyState" class="empty-state" style="display:none;">
+    <span class="big">아직 채점표가 없어요</span>
+    아래에서 첫 회차를 만들어보세요.
+  </div>
+
+</div>
+
+<!-- 알림 토스트 -->
+<div class="toast" id="toast"></div>
+
+<!-- JavaScript 모듈 로드 -->
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
