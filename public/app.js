@@ -119,6 +119,12 @@ function computeMemberStats(round) {
 }
 
 function cycleMark(round, member, q) {
+  // 본인 이름이 아니면 수정 불가 제한
+  if (myName !== member) {
+    showToast('본인 칸만 수정할 수 있습니다.');
+    return;
+  }
+
   if (!round.results[member]) round.results[member] = {};
   const cur = round.results[member][q];
   let next;
@@ -193,6 +199,7 @@ function renderMemberChips() {
     const btn = document.createElement('button');
     btn.textContent = '×';
     btn.onclick = async () => {
+      // 본인 계정이거나 자유롭게 삭제 가능하도록 처리 (본인 것만 삭제 원하시면 추가 조건 가능)
       await withBusy(async () => {
         roster = roster.filter(x => x !== m);
         await saveRoster();
@@ -237,10 +244,11 @@ function renderSheet(round) {
   thq.textContent = '문제';
   trh.appendChild(thq);
 
-  roster.forEach(m => {
+  roster.hover = roster.forEach(m => {
     const th = document.createElement('th');
     th.className = 'member-th';
-    th.innerHTML = '<div>' + m + '</div>';
+    // 본인 이름인 경우 표시에 강조를 줄 수 있음
+    th.innerHTML = '<div>' + m + (m === myName ? ' (나)' : '') + '</div>';
     trh.appendChild(th);
   });
   thead.appendChild(trh);
@@ -259,6 +267,12 @@ function renderSheet(round) {
       td.className = 'markcell';
       const v = round.results[m] && round.results[m][q];
       td.innerHTML = markSpan(v);
+      
+      // 본인 칸이 아닐 경우 마우스 오버나 스타일 힌트 부여 가능
+      if (m !== myName) {
+        td.style.opacity = '0.7';
+      }
+
       td.onclick = async () => {
         await withBusy(async () => {
           cycleMark(round, m, q);
@@ -289,7 +303,8 @@ function renderRanking(round) {
     return;
   }
 
-  stats.slice(0, 10).forEach((s, i) => {
+  // 요구사항 1: 오답 랭킹 15문제까지 확장 (10 -> 15)
+  stats.slice(0, 15).forEach((s, i) => {
     const item = document.createElement('div');
     item.className = 'rank-item';
     const pct = Math.round(s.rate * 100);
@@ -316,6 +331,11 @@ function renderMemberStats(round) {
   stats.forEach(s => {
     const overallPct = round.totalQuestions > 0 ? Math.round(s.o / round.totalQuestions * 100) : 0;
     const solvedPct = s.graded > 0 ? Math.round(s.acc * 100) : 0;
+    
+    // 요구사항 2: 숫자 형태 (예: 31/50 (62%)) 로 표기
+    const overallText = `${s.o}/${round.totalQuestions} (${overallPct}%)`;
+    const solvedText = s.graded > 0 ? `${s.o}/${s.graded} (${solvedPct}%)` : '-';
+
     const block = document.createElement('div');
     block.className = 'member-block';
     block.innerHTML =
@@ -323,12 +343,12 @@ function renderMemberStats(round) {
       '<div class="member-substat">' +
         '<span class="sub-label">전체 정답률</span>' +
         '<div class="bar-track"><div class="bar-fill" style="width:' + overallPct + '%;"></div></div>' +
-        '<span class="pct">' + overallPct + '%</span>' +
+        '<span class="pct" style="width: auto; min-width: 65px;">' + overallText + '</span>' +
       '</div>' +
       '<div class="member-substat">' +
         '<span class="sub-label">푼 문제 중</span>' +
         '<div class="bar-track"><div class="bar-fill alt" style="width:' + solvedPct + '%;"></div></div>' +
-        '<span class="pct">' + (s.graded > 0 ? solvedPct + '%' : '-') + '</span>' +
+        '<span class="pct" style="width: auto; min-width: 65px;">' + solvedText + '</span>' +
       '</div>';
     wrap.appendChild(block);
   });
