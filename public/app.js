@@ -8,6 +8,7 @@ let activeRoundId = null;
 let editingSetup = false;
 let editingMembers = false;
 let myName = null;
+let onlineUsers = []; // 실시간 접속자 목록
 let busy = 0;
 
 async function withBusy(fn) {
@@ -118,8 +119,8 @@ function computeMemberStats(round) {
   });
 }
 
+// 본인 이름 칸만 수정 가능하도록 제한
 function cycleMark(round, member, q) {
-  // 본인 이름이 아니면 수정 불가 제한
   if (myName !== member) {
     showToast('본인 칸만 수정할 수 있습니다.');
     return;
@@ -199,7 +200,6 @@ function renderMemberChips() {
     const btn = document.createElement('button');
     btn.textContent = '×';
     btn.onclick = async () => {
-      // 본인 계정이거나 자유롭게 삭제 가능하도록 처리 (본인 것만 삭제 원하시면 추가 조건 가능)
       await withBusy(async () => {
         roster = roster.filter(x => x !== m);
         await saveRoster();
@@ -244,10 +244,9 @@ function renderSheet(round) {
   thq.textContent = '문제';
   trh.appendChild(thq);
 
-  roster.hover = roster.forEach(m => {
+  roster.forEach(m => {
     const th = document.createElement('th');
     th.className = 'member-th';
-    // 본인 이름인 경우 표시에 강조를 줄 수 있음
     th.innerHTML = '<div>' + m + (m === myName ? ' (나)' : '') + '</div>';
     trh.appendChild(th);
   });
@@ -267,10 +266,9 @@ function renderSheet(round) {
       td.className = 'markcell';
       const v = round.results[m] && round.results[m][q];
       td.innerHTML = markSpan(v);
-      
-      // 본인 칸이 아닐 경우 마우스 오버나 스타일 힌트 부여 가능
+
       if (m !== myName) {
-        td.style.opacity = '0.7';
+        td.style.opacity = '0.65'; // 본인이 아닌 칸은 약간 연하게 표시
       }
 
       td.onclick = async () => {
@@ -293,6 +291,7 @@ function markSpan(v) {
   return '<span class="mark blank">·</span>';
 }
 
+// 오답 랭킹 15문제로 확장
 function renderRanking(round) {
   const stats = computeQuestionStats(round).filter(s => s.graded > 0).sort((a, b) => b.rate - a.rate || b.x - a.x);
   const list = document.getElementById('rankList');
@@ -303,7 +302,6 @@ function renderRanking(round) {
     return;
   }
 
-  // 요구사항 1: 오답 랭킹 15문제까지 확장 (10 -> 15)
   stats.slice(0, 15).forEach((s, i) => {
     const item = document.createElement('div');
     item.className = 'rank-item';
@@ -318,6 +316,7 @@ function renderRanking(round) {
   });
 }
 
+// 스터디원 정답률 숫자/퍼센트 형태 포맷팅 (예: 31/50 (62%))
 function renderMemberStats(round) {
   const stats = computeMemberStats(round);
   const wrap = document.getElementById('memberStats');
@@ -332,23 +331,22 @@ function renderMemberStats(round) {
     const overallPct = round.totalQuestions > 0 ? Math.round(s.o / round.totalQuestions * 100) : 0;
     const solvedPct = s.graded > 0 ? Math.round(s.acc * 100) : 0;
     
-    // 요구사항 2: 숫자 형태 (예: 31/50 (62%)) 로 표기
     const overallText = `${s.o}/${round.totalQuestions} (${overallPct}%)`;
     const solvedText = s.graded > 0 ? `${s.o}/${s.graded} (${solvedPct}%)` : '-';
 
     const block = document.createElement('div');
     block.className = 'member-block';
     block.innerHTML =
-      '<div class="member-name">' + s.name + '</div>' +
+      '<div class="member-name">' + s.name + (s.name === myName ? ' (나)' : '') + '</div>' +
       '<div class="member-substat">' +
         '<span class="sub-label">전체 정답률</span>' +
         '<div class="bar-track"><div class="bar-fill" style="width:' + overallPct + '%;"></div></div>' +
-        '<span class="pct" style="width: auto; min-width: 65px;">' + overallText + '</span>' +
+        '<span class="pct" style="width: auto; min-width: 70px;">' + overallText + '</span>' +
       '</div>' +
       '<div class="member-substat">' +
         '<span class="sub-label">푼 문제 중</span>' +
         '<div class="bar-track"><div class="bar-fill alt" style="width:' + solvedPct + '%;"></div></div>' +
-        '<span class="pct" style="width: auto; min-width: 65px;">' + solvedText + '</span>' +
+        '<span class="pct" style="width: auto; min-width: 70px;">' + solvedText + '</span>' +
       '</div>';
     wrap.appendChild(block);
   });
@@ -384,8 +382,27 @@ function renderJoin() {
   };
 }
 
+// 실시간 접속자 목록 렌더링
+function renderOnlineUsers() {
+  const bar = document.getElementById('onlineUsersBar');
+  const listEl = document.getElementById('onlineUsersList');
+  if (!myName) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'block';
+  
+  if (!onlineUsers || onlineUsers.length === 0) {
+    listEl.textContent = myName ? myName : '없음';
+  } else {
+    const uniqueUsers = [...new Set(onlineUsers)];
+    listEl.textContent = uniqueUsers.join(', ');
+  }
+}
+
 function render() {
   renderJoin();
+  renderOnlineUsers();
   if (!myName) {
     document.getElementById('roundTabsCard').style.display = 'none';
     document.getElementById('setupCard').style.display = 'none';
@@ -429,6 +446,10 @@ document.getElementById('joinBtn').onclick = async () => {
       roster.push(name);
       await saveRoster();
     }
+    
+    // 서버에 실시간 접속 알림 전송
+    socket.emit('joinUser', myName);
+
     render();
     showToast(name + '님, 환영해요');
   });
@@ -485,10 +506,27 @@ document.getElementById('editMembersBtn').onclick = () => {
   render();
 };
 
-// 앱 초기화 및 소켓 실시간 업데이트 리스너 연결
+// 소켓 연결 시 자동 등록
+socket.on('connect', () => {
+  if (myName) {
+    socket.emit('joinUser', myName);
+  }
+});
+
+// 서버로부터 실시간 접속자 목록 수신
+socket.on('updateActiveUsers', (users) => {
+  onlineUsers = users;
+  renderOnlineUsers();
+});
+
+// 앱 초기화 함수
 (async function init() {
   await loadMyName();
   await loadAll();
+
+  if (myName) {
+    socket.emit('joinUser', myName);
+  }
 
   if (myName && !roster.includes(myName)) {
     roster.push(myName);
@@ -499,7 +537,7 @@ document.getElementById('editMembersBtn').onclick = () => {
   render();
   document.body.classList.add('loaded');
 
-  // 실시간 동기화 수신 (서버에서 데이터 변경 이벤트가 오면 즉시 반영)
+  // 실시간 데이터 동기화 수신
   socket.on('dataUpdated', ({ key, value }) => {
     if (key === 'roster') roster = value || [];
     if (key === 'rounds') rounds = value || [];

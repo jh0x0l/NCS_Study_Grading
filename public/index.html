@@ -13,12 +13,11 @@
   <!-- CSS 스타일시트 -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- Firebase SDK 완전 제거됨! Socket.io 추가 -->
+  <!-- Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 <div class="wrap">
-  <!-- (기존 HTML 본문 내용 그대로 유지) -->
   <div class="stamp-wrap">
     <div>
       <p class="eyebrow">NCS STUDY GRADING SHEET</p>
@@ -27,6 +26,11 @@
       <p class="subtitle" id="whoAmI" style="display:none; margin-top:6px;"></p>
     </div>
     <div class="stamp">확인<br>완료</div>
+  </div>
+
+  <!-- 실시간 접속자 표시 바 -->
+  <div id="onlineUsersBar" class="card" style="padding: 10px 16px; display: none; font-size: 12px; color: var(--ink-soft); margin-bottom: 16px;">
+    🟢 <strong>실시간 접속 중:</strong> <span id="onlineUsersList">없음</span>
   </div>
 
   <!-- 입장 모달/카드 -->
@@ -78,7 +82,7 @@
     <div class="grid2">
       <!-- 02 채점 그리드 -->
       <div class="card" style="padding:14px;">
-        <h2 style="padding:0 6px;"><span class="num">02</span> 채점 그리드 <span style="font-weight:400; color:var(--ink-faint); font-size:11px; margin-left:4px;">(칸을 눌러 O → X → 빈칸 순서로 표시)</span></h2>
+        <h2 style="padding:0 6px;"><span class="num">02</span> 채점 그리드 <span style="font-weight:400; color:var(--ink-faint); font-size:11px; margin-left:4px;">(본인 칸을 눌러 O → X → 빈칸 순서 변경)</span></h2>
         <div class="sheet-scroll">
           <table class="sheet" id="sheetTable"></table>
         </div>
@@ -92,7 +96,7 @@
       <!-- 통계 및 관리 영역 -->
       <div>
         <div class="card">
-          <h2><span class="num">03</span> 오답률 랭킹</h2>
+          <h2><span class="num">03</span> 오답률 랭킹 (최상위 15개)</h2>
           <div id="rankList"></div>
         </div>
 
@@ -131,7 +135,6 @@
 <!-- 알림 토스트 -->
 <div class="toast" id="toast"></div>
 
-<!-- JavaScript 단일화 (api.js 삭제) -->
 <script src="app.js"></script>
 </body>
 </html>
